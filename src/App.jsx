@@ -78,6 +78,74 @@ const CERT_LINKS = {
 
 /**
  * ============================================================================
+ * SCROLL INTERACTIONS: CSS, REVEAL COMPONENT, NAV SECTIONS
+ * ============================================================================
+ */
+const SCROLL_CSS = `
+html { scroll-behavior: smooth; }
+.rv {
+  opacity: 0;
+  transform: translate3d(0, 28px, 0);
+  transition: opacity 0.7s cubic-bezier(0.22, 1, 0.36, 1), transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: opacity, transform;
+}
+.rv.rv-in { opacity: 1; transform: none; }
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .rv { opacity: 1; transform: none; transition: none; }
+}
+`;
+
+const NAV_SECTION_IDS = ['story', 'tactics', 'highlights', 'seasons', 'off-pitch', 'scouting'];
+
+/**
+ * Elemen yang muncul halus (fade + naik) saat masuk layar.
+ * Hanya animasi sekali; setelah selesai class animasinya dilepas supaya
+ * efek hover / transition bawaan elemen tidak terganggu.
+ */
+const Reveal = ({ as: Tag = 'div', delay = 0, className = '', style, children, ...rest }) => {
+  const ref = useRef(null);
+  const [phase, setPhase] = useState(0); // 0 = tersembunyi, 1 = tampil, 2 = selesai
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return undefined;
+    const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    if (reduce || typeof IntersectionObserver === 'undefined') {
+      setPhase(2);
+      return undefined;
+    }
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setPhase(1);
+          io.disconnect();
+        }
+      },
+      { rootMargin: '0px 0px -8% 0px', threshold: 0 }
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (phase !== 1) return undefined;
+    const id = setTimeout(() => setPhase(2), 900 + delay);
+    return () => clearTimeout(id);
+  }, [phase, delay]);
+
+  const cls = phase === 2 ? className : `${className} rv${phase === 1 ? ' rv-in' : ''}`;
+  const st = phase === 1 ? { ...style, transitionDelay: `${delay}ms` } : style;
+
+  return (
+    <Tag ref={ref} className={cls} style={st} {...rest}>
+      {children}
+    </Tag>
+  );
+};
+
+/**
+ * ============================================================================
  * BILINGUAL EDITORIAL DICTIONARY (ENGLISH & BAHASA INDONESIA)
  * Styled in the voice of a warm, humanist football matchday programme.
  * ============================================================================
@@ -98,12 +166,12 @@ const COPY = {
       headlinePre: 'Engineering with the vision of a',
       headlineAccent: 'box-to-box midfielder.',
       subhead:
-        'Moch. Hafidz Nur Ramadhan (Rama), D4 Electrical Engineering graduate from Universitas Negeri Yogyakarta (GPA 3.63 / 4.00).',
+        'Moch. Hafidz Nur Ramadhan (Rama), D4 Electrical Engineering graduate from Universitas Negeri Yogyakarta (GPA 3.63 / 4.00, Cum Laude).',
       storyP1:
         'Growing up in Sleman at the foot of Mount Merapi taught me that good football and good engineering share the same heartbeat: awareness, clear communication, and connecting every line on the pitch.',
       storyP2:
         'Whether wiring industrial sensors on the factory touchline, architecting PHP & MySQL production dashboards, or building real-time Python & LoRa telemetry pipelines, I thrive where hardware meets human-centered software.',
-      badgeGpa: 'UNY D4 Electronics · GPA 3.63',
+      badgeGpa: 'UNY D4 Electronics · GPA 3.63 Cum Laude',
       badgeToefl: 'TOEFL 570 · C1 Advanced',
       badgeMobility: 'SIM A & SIM C Active · Ready to Relocate',
       copyEmail: 'Copy Email',
@@ -246,12 +314,12 @@ const COPY = {
       headlinePre: 'Merekayasa sistem dengan visi seorang',
       headlineAccent: 'gelandang box-to-box.',
       subhead:
-        'Moch. Hafidz Nur Ramadhan ( Rama), Lulusan Sarjana Terapan (D4) Teknik Elektronika Universitas Negeri Yogyakarta (IPK 3.63 / 4.00).',
+        'Moch. Hafidz Nur Ramadhan (Rama), Lulusan Sarjana Terapan (D4) Teknik Elektronika Universitas Negeri Yogyakarta (IPK 3.63 / 4.00, Cum Laude).',
       storyP1:
         'Tumbuh di Sleman di kaki Gunung Merapi mengajarkan saya bahwa sepak bola yang baik dan rekayasa teknologi yang andal memiliki detak jantung yang sama: kepekaan membaca situasi, komunikasi jernih, dan kemampuan menghubungkan setiap lini.',
       storyP2:
         'Baik saat menangani sensor industri di lini produksi, merancang dasbor web PHP & MySQL, maupun membangun jalur telemetri real-time Python & LoRa, saya bersemangat menjembatani perangkat keras dengan perangkat lunak yang humanis.',
-      badgeGpa: 'D4 Elektronika UNY · IPK 3.63 ',
+      badgeGpa: 'D4 Elektronika UNY · IPK 3.63 Cum Laude',
       badgeToefl: 'TOEFL 570 · C1 Advanced',
       badgeMobility: 'SIM A & SIM C Aktif · Siap Relokasi',
       copyEmail: 'Salin Email',
@@ -634,11 +702,11 @@ const PITCH_PLAYERS = [
       id: 'Menuntaskan setiap proyek hingga garis akhir, memadukan pengujian disiplin, adaptasi kerja shift, dan kesiapan relokasi penuh.'
     },
     proof: {
-      en: 'Graduated (GPA 3.63) while shipping real factory software, peer-reviewed research, and national competition podiums.',
-      id: 'Lulus (IPK 3.63) sambil merilis perangkat lunak pabrik nyata, publikasi jurnal ilmiah, dan podium kompetisi nasional.'
+      en: 'Graduated Cum Laude (GPA 3.63) while shipping real factory software, peer-reviewed research, and national competition podiums.',
+      id: 'Lulus Cum Laude (IPK 3.63) sambil merilis perangkat lunak pabrik nyata, publikasi jurnal ilmiah, dan podium kompetisi nasional.'
     },
     skills: ['End-to-End Delivery', 'QA & Verification', 'Shift & Field Ready', 'Team Collaboration'],
-    credential: 'D4 Electronics Engineering UNY · (2026)',
+    credential: 'D4 Electronics Engineering UNY · Cum Laude (2026)',
     coords: {
       total: { x: 87, y: 66 },
       playmaker: { x: 86, y: 68 },
@@ -892,15 +960,15 @@ const CAREER_SEASONS = [
     },
     club: 'Universitas Negeri Yogyakarta (UNY)',
     city: 'Sleman, Yogyakarta',
-    tag: { en: 'GPA 3.63 / 4.00· ', id: 'IPK 3.63 / 4.00· ' },
+    tag: { en: 'GPA 3.63 / 4.00 · Cum Laude', id: 'IPK 3.63 / 4.00 · Cum Laude' },
     notes: {
       en: [
-        'Graduated with GPA 3.63 / 4.0, combining software development with industrial electronics, instrumentation, and control.',
+        'Graduated with Cum Laude honors (GPA 3.63 / 4.00), combining software development with industrial electronics, instrumentation, and control.',
         'Published final thesis on IoT volcanic gas early warning telemetry (LoRa SX1276 & MQTT-SN) in the JRAEE journal.',
         'Core coursework: Computer Programming, Relational Databases & SQL, Industrial Instrumentation, Control Systems, PLC & Automation.'
       ],
       id: [
-        'Lulus dengan IPK 3.63 / 4.0, memadukan rekayasa perangkat lunak dengan elektronika industri, instrumentasi, dan kontrol.',
+        'Lulus dengan predikat Cum Laude (IPK 3.63 / 4.00), memadukan rekayasa perangkat lunak dengan elektronika industri, instrumentasi, dan kontrol.',
         'Memublikasikan tugas akhir telemetri peringatan dini gas vulkanik IoT (LoRa SX1276 & MQTT-SN) pada jurnal JRAEE.',
         'Mata kuliah inti: Pemrograman Komputer, Basis Data Relasional & SQL, Instrumentasi Industri, Sistem Kendali, PLC & Otomasi.'
       ]
@@ -1095,6 +1163,12 @@ const MERAPI_FILM_RECIPES = [
 
 export default function App() {
   const [lang, setLang] = useState('en');
+  const [scrolled, setScrolled] = useState(false);
+  const [showTop, setShowTop] = useState(false);
+  const [activeSection, setActiveSection] = useState('story');
+  const progressRef = useRef(null);
+  const ringRef = useRef(null);
+  const dossierRef = useRef(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Interactive Feature 1: Tactical Pitch Board state
@@ -1147,6 +1221,61 @@ export default function App() {
   const clipboardRef = useRef(null);
 
   const t = COPY[lang];
+
+  // Scroll interactions: progress bar, sticky-header shadow, back-to-top ring, hero parallax
+  useEffect(() => {
+    const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    const RING = 2 * Math.PI * 18; // keliling lingkaran tombol back-to-top
+    let ticking = false;
+
+    const update = () => {
+      ticking = false;
+      const y = window.scrollY || 0;
+      const max = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
+      const p = Math.min(1, Math.max(0, y / max));
+
+      if (progressRef.current) progressRef.current.style.transform = `scaleX(${p})`;
+      if (ringRef.current) ringRef.current.style.strokeDashoffset = String(RING * (1 - p));
+      if (dossierRef.current) {
+        const wide = window.innerWidth >= 1024;
+        dossierRef.current.style.transform =
+          !reduce && wide ? `translate3d(0, ${Math.min(y, 700) * 0.07}px, 0)` : '';
+      }
+      setScrolled(y > 8);
+      setShowTop(y > 600);
+    };
+
+    const onScroll = () => {
+      if (!ticking) {
+        ticking = true;
+        window.requestAnimationFrame(update);
+      }
+    };
+
+    update();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onScroll);
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      window.removeEventListener('resize', onScroll);
+    };
+  }, []);
+
+  // Scroll-spy: tandai menu navigasi sesuai bagian yang sedang dibaca
+  useEffect(() => {
+    if (typeof IntersectionObserver === 'undefined') return undefined;
+    const els = NAV_SECTION_IDS.map((id) => document.getElementById(id)).filter(Boolean);
+    const io = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) setActiveSection(entry.target.id);
+        });
+      },
+      { rootMargin: '-45% 0px -50% 0px', threshold: 0 }
+    );
+    els.forEach((el) => io.observe(el));
+    return () => io.disconnect();
+  }, []);
 
   // Lock body scroll when modal is open
   useEffect(() => {
@@ -1316,7 +1445,48 @@ export default function App() {
 
   return (
     <div>
-      <div className="min-h-screen bg-[#F6F3EB] text-[#16241D] font-sans antialiased selection:bg-[#15803D]/20 selection:text-[#15803D] transition-colors duration-300 overflow-x-hidden relative">
+      <div className="min-h-screen bg-[#F6F3EB] text-[#16241D] font-sans antialiased selection:bg-[#15803D]/20 selection:text-[#15803D] transition-colors duration-300 overflow-x-clip relative">
+        <style>{SCROLL_CSS}</style>
+
+        {/* Scroll progress bar */}
+        <div aria-hidden="true" className="fixed top-0 left-0 right-0 z-[60] h-1 pointer-events-none">
+          <div
+            ref={progressRef}
+            className="h-full origin-left"
+            style={{
+              transform: 'scaleX(0)',
+              background: 'linear-gradient(90deg, #15803D, #C8962E, #DC2626)'
+            }}
+          />
+        </div>
+
+        {/* Floating back-to-top with progress ring */}
+        <button
+          type="button"
+          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+          aria-label={t.footer.backTop}
+          title={t.footer.backTop}
+          tabIndex={showTop ? 0 : -1}
+          className={`fixed bottom-5 right-5 z-50 w-12 h-12 rounded-full bg-[#FFFDF8] border border-[#16241D]/15 shadow-lg flex items-center justify-center text-[#15803D] hover:bg-[#15803D] hover:text-white transition-all duration-300 ${
+            showTop ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'
+          }`}
+        >
+          <svg viewBox="0 0 44 44" className="absolute inset-0 w-full h-full -rotate-90" aria-hidden="true">
+            <circle
+              ref={ringRef}
+              cx="22"
+              cy="22"
+              r="18"
+              fill="none"
+              stroke="#C8962E"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeDasharray={2 * Math.PI * 18}
+              strokeDashoffset={2 * Math.PI * 18}
+            />
+          </svg>
+          <ArrowUp className="w-4 h-4 relative" />
+        </button>
         {/* Subtle Tactile Matchday Paper Grain / Stadium Line Overlay */}
         <div
           aria-hidden="true"
@@ -1328,7 +1498,9 @@ export default function App() {
         />
 
         {/* ==================== TOP STICKY MATCHDAY HEADER ==================== */}
-        <header className="sticky top-0 z-40 backdrop-blur-md bg-[#F6F3EB]/92 border-b border-[#16241D]/12">
+        <header className={`sticky top-0 z-40 backdrop-blur-md bg-[#F6F3EB]/92 border-b border-[#16241D]/12 transition-shadow duration-300 ${
+          scrolled ? 'shadow-md' : ''
+        }`}>
           <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-3">
             {/* Club / Personal Crest */}
             <a href="#story" className="flex items-center gap-3 group shrink-0">
@@ -1338,7 +1510,7 @@ export default function App() {
               </div>
               <div className="flex flex-col">
                 <span className="font-mono text-xs sm:text-sm font-bold tracking-wider text-[#16241D]">
-                  HAFIDZ // 10
+                  Rama // 10
                 </span>
                 <span className="font-mono text-[10px] uppercase tracking-widest text-[#4A5D53]">
                   MHR &bull; SLEMAN
@@ -1348,21 +1520,33 @@ export default function App() {
 
             {/* Desktop Navigation */}
             <nav className="hidden lg:flex items-center gap-5 text-[13px] font-medium text-[#4A5D53]">
-              <a href="#story" className="hover:text-[#15803D] transition-colors">
-                {t.nav.story}
-              </a>
-              <a href="#tactics" className="hover:text-[#15803D] transition-colors">
-                {t.nav.tactics}
-              </a>
-              <a href="#highlights" className="hover:text-[#15803D] transition-colors">
-                {t.nav.highlights}
-              </a>
-              <a href="#seasons" className="hover:text-[#15803D] transition-colors">
-                {t.nav.seasons}
-              </a>
-              <a href="#off-pitch" className="hover:text-[#15803D] transition-colors">
-                {t.nav.offPitch}
-              </a>
+              {[
+                { id: 'story', label: t.nav.story },
+                { id: 'tactics', label: t.nav.tactics },
+                { id: 'highlights', label: t.nav.highlights },
+                { id: 'seasons', label: t.nav.seasons },
+                { id: 'off-pitch', label: t.nav.offPitch }
+              ].map((item) => {
+                const active = activeSection === item.id;
+                return (
+                  <a
+                    key={item.id}
+                    href={`#${item.id}`}
+                    aria-current={active ? 'true' : undefined}
+                    className={`relative py-1 transition-colors hover:text-[#15803D] ${
+                      active ? 'text-[#15803D] font-bold' : ''
+                    }`}
+                  >
+                    {item.label}
+                    <span
+                      aria-hidden="true"
+                      className={`absolute left-0 -bottom-0.5 h-0.5 rounded-full bg-[#C8962E] transition-all duration-300 ${
+                        active ? 'w-full' : 'w-0'
+                      }`}
+                    />
+                  </a>
+                );
+              })}
             </nav>
 
             {/* Right Matchday Controls */}
@@ -1433,7 +1617,9 @@ export default function App() {
                   key={item.href}
                   href={item.href}
                   onClick={() => setMobileMenuOpen(false)}
-                  className="block px-3 py-2 rounded-lg text-sm font-medium hover:bg-[#15803D]/10"
+                  className={`block px-3 py-2 rounded-lg text-sm font-medium hover:bg-[#15803D]/10 ${
+                    activeSection === item.href.slice(1) ? 'bg-[#15803D]/10 text-[#15803D] font-bold' : ''
+                  }`}
                 >
                   {item.label}
                 </a>
@@ -1445,7 +1631,7 @@ export default function App() {
         {/* ==================== MAIN EDITORIAL CONTENT ==================== */}
         <main className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 pt-8 sm:pt-12 pb-24 space-y-20 sm:space-y-24">
           {/* ==================== HERO: MATCHDAY COVER & PLAYER PROFILE ==================== */}
-          <section id="story" className="scroll-mt-24">
+          <Reveal as="section" id="story" className="scroll-mt-24">
             <div className="rounded-3xl bg-[#FFFDF8] border border-[#16241D]/15 p-6 sm:p-10 shadow-sm relative overflow-hidden">
               {/* Stadium Turf Top Accent Bar */}
               <div
@@ -1560,7 +1746,10 @@ export default function App() {
                 </div>
 
                 {/* Right Editorial Scouting Dossier Card (5 Cols) */}
-                <div className="lg:col-span-5 rounded-2xl bg-[#F6F3EB] border-2 border-[#16241D]/15 p-5 sm:p-6 space-y-4">
+                <div
+                  ref={dossierRef}
+                  className="lg:col-span-5 rounded-2xl bg-[#F6F3EB] border-2 border-[#16241D]/15 p-5 sm:p-6 space-y-4 will-change-transform"
+                >
                   <div className="flex items-center justify-between border-b border-[#16241D]/12 pb-3">
                     <div>
                       <span className="font-mono text-[10px] uppercase tracking-widest text-[#DC2626] font-bold block">
@@ -1606,10 +1795,10 @@ export default function App() {
                 </div>
               </div>
             </div>
-          </section>
+          </Reveal>
 
           {/* ==================== INTERACTIVE FEATURE 1: THE TACTICAL PITCH BOARD ==================== */}
-          <section id="tactics" className="scroll-mt-24">
+          <Reveal as="section" id="tactics" className="scroll-mt-24">
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-6">
               <div>
                 <span className="font-mono text-xs font-bold tracking-widest uppercase text-[#DC2626]">
@@ -1933,10 +2122,10 @@ export default function App() {
                 </div>
               </div>
             </div>
-          </section>
+          </Reveal>
 
           {/* ==================== INTERACTIVE FEATURE 2: MATCH HIGHLIGHTS (4 CASE STUDIES) ==================== */}
-          <section id="highlights" className="scroll-mt-24">
+          <Reveal as="section" id="highlights" className="scroll-mt-24">
             <div className="mb-8">
               <span className="font-mono text-xs font-bold tracking-widest uppercase text-[#DC2626]">
                 {t.highlightsSection.eyebrow}
@@ -1951,7 +2140,7 @@ export default function App() {
 
             <div className="space-y-8">
               {/* MATCH CARD 1: JRAEE VOLCANIC GAS EARLY WARNING SYSTEM */}
-              <article className="rounded-3xl bg-[#FFFDF8] border border-[#16241D]/15 p-6 sm:p-8 shadow-sm">
+              <Reveal as="article" className="rounded-3xl bg-[#FFFDF8] border border-[#16241D]/15 p-6 sm:p-8 shadow-sm">
                 <div className="flex flex-wrap items-center justify-between gap-2 pb-4 mb-5 border-b border-[#16241D]/12">
                   <span className="font-mono text-xs font-bold px-3 py-1 rounded-full bg-[#15803D]/12 text-[#15803D]">
                     {MATCH_HIGHLIGHTS.volcanic.competition[lang]}
@@ -2196,10 +2385,10 @@ export default function App() {
                     </div>
                   </div>
                 </div>
-              </article>
+              </Reveal>
 
               {/* MATCH CARD 2: OPPO INDONESIA, PRODUCTION LINE 403 INVENTORY SYSTEM */}
-              <article className="rounded-3xl bg-[#FFFDF8] border border-[#16241D]/15 p-6 sm:p-8 shadow-sm">
+              <Reveal as="article" className="rounded-3xl bg-[#FFFDF8] border border-[#16241D]/15 p-6 sm:p-8 shadow-sm">
                 <div className="flex flex-wrap items-center justify-between gap-2 pb-4 mb-5 border-b border-[#16241D]/12">
                   <span className="font-mono text-xs font-bold px-3 py-1 rounded-full bg-[#C8962E]/15 text-[#8c6516]">
                     {MATCH_HIGHLIGHTS.oppo.competition[lang]}
@@ -2316,12 +2505,12 @@ export default function App() {
                     </div>
                   </div>
                 </div>
-              </article>
+              </Reveal>
 
               {/* SPLIT ROW FOR MATCH CARDS 3 & 4 */}
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
                 {/* MATCH CARD 3: SPARK REAL-TIME AIR QUALITY MONITOR (6 Cols) */}
-                <article className="lg:col-span-6 rounded-3xl bg-[#FFFDF8] border border-[#16241D]/15 p-6 sm:p-7 flex flex-col justify-between shadow-sm">
+                <Reveal as="article" className="lg:col-span-6 rounded-3xl bg-[#FFFDF8] border border-[#16241D]/15 p-6 sm:p-7 flex flex-col justify-between shadow-sm">
                   <div>
                     <div className="flex items-center justify-between gap-2 pb-3 mb-4 border-b border-[#16241D]/12">
                       <span className="font-mono text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-[#DC2626]/12 text-[#DC2626]">
@@ -2428,10 +2617,10 @@ export default function App() {
                       <ArrowUpRight className="w-3.5 h-3.5" />
                     </button>
                   </div>
-                </article>
+                </Reveal>
 
                 {/* MATCH CARD 4: ARCADIA ADAPTIVE LEARNING PLATFORM (6 Cols) */}
-                <article className="lg:col-span-6 rounded-3xl bg-[#FFFDF8] border border-[#16241D]/15 p-6 sm:p-7 flex flex-col justify-between shadow-sm">
+                <Reveal as="article" className="lg:col-span-6 rounded-3xl bg-[#FFFDF8] border border-[#16241D]/15 p-6 sm:p-7 flex flex-col justify-between shadow-sm">
                   <div>
                     <div className="flex items-center justify-between gap-2 pb-3 mb-4 border-b border-[#16241D]/12">
                       <span className="font-mono text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-[#15803D]/12 text-[#15803D]">
@@ -2526,13 +2715,13 @@ export default function App() {
                       <ArrowUpRight className="w-3.5 h-3.5" />
                     </button>
                   </div>
-                </article>
+                </Reveal>
               </div>
             </div>
-          </section>
+          </Reveal>
 
           {/* ==================== INTERACTIVE FEATURE 3: CAREER SEASONS & COACHING LICENSES ==================== */}
-          <section id="seasons" className="scroll-mt-24">
+          <Reveal as="section" id="seasons" className="scroll-mt-24">
             <div className="mb-8">
               <span className="font-mono text-xs font-bold tracking-widest uppercase text-[#DC2626]">
                 {t.seasonsSection.eyebrow}
@@ -2552,7 +2741,7 @@ export default function App() {
                   {t.seasonsSection.seasonsTitle}
                 </h3>
 
-                {CAREER_SEASONS.map((season) => {
+                {CAREER_SEASONS.map((season, seasonIdx) => {
                   const isOpen = !!openSeasons[season.id];
                   const Icon =
                     season.type === 'work'
@@ -2562,8 +2751,10 @@ export default function App() {
                       : Users;
 
                   return (
-                    <div
+                    <Reveal
+                      as="div"
                       key={season.id}
+                      delay={seasonIdx * 90}
                       className="rounded-2xl bg-[#FFFDF8] border border-[#16241D]/15 p-5 transition-all"
                     >
                       <div className="flex items-start justify-between gap-3">
@@ -2624,7 +2815,7 @@ export default function App() {
                           ))}
                         </ul>
                       )}
-                    </div>
+                    </Reveal>
                   );
                 })}
               </div>
@@ -2662,7 +2853,7 @@ export default function App() {
                 </div>
 
                 <div className="space-y-2.5">
-                  {visibleBadges.map((badge) => {
+                  {visibleBadges.map((badge, badgeIdx) => {
                     const certUrl = CERT_LINKS[badge.certKey];
                     const Wrapper = certUrl ? 'a' : 'div';
                     const linkProps = certUrl
@@ -2674,12 +2865,14 @@ export default function App() {
                         }
                       : {};
                     return (
-                      <Wrapper
+                      <Reveal
+                        as={Wrapper}
                         key={badge.id}
+                        delay={badgeIdx * 70}
                         {...linkProps}
                         className={`group p-3.5 rounded-2xl bg-[#F6F3EB] border border-[#16241D]/10 flex items-start justify-between gap-3 ${
                           certUrl
-                            ? 'cursor-pointer transition-all hover:border-[#15803D] hover:shadow-sm hover:-translate-y-0.5'
+                            ? 'cursor-pointer transition-all hover:border-[#15803D] hover:shadow-md'
                             : ''
                         }`}
                       >
@@ -2703,16 +2896,16 @@ export default function App() {
                         <span className="font-mono text-[11px] font-bold px-2 py-0.5 rounded bg-[#FFFDF8] border border-[#16241D]/12 text-[#8c6516] shrink-0">
                           {badge.year}
                         </span>
-                      </Wrapper>
+                      </Reveal>
                     );
                   })}
                 </div>
               </div>
             </div>
-          </section>
+          </Reveal>
 
           {/* ==================== OFF THE PITCH, THE HUMAN SIDE ==================== */}
-          <section id="off-pitch" className="scroll-mt-24">
+          <Reveal as="section" id="off-pitch" className="scroll-mt-24">
             <div className="rounded-3xl bg-[#FFFDF8] border border-[#16241D]/15 p-6 sm:p-9 shadow-sm space-y-8">
               <div>
                 <span className="font-mono text-xs font-bold tracking-widest uppercase text-[#C8962E]">
@@ -2862,10 +3055,10 @@ export default function App() {
                 </div>
               </div>
             </div>
-          </section>
+          </Reveal>
 
           {/* ==================== INTERACTIVE FEATURE 4: TRANSFER & SCOUTING DESK ==================== */}
-          <section id="scouting" className="scroll-mt-24">
+          <Reveal as="section" id="scouting" className="scroll-mt-24">
             <div className="mb-8">
               <span className="font-mono text-xs font-bold tracking-widest uppercase text-[#DC2626]">
                 {t.scoutingSection.eyebrow}
@@ -3039,7 +3232,7 @@ export default function App() {
                 </div>
               </div>
             </div>
-          </section>
+          </Reveal>
         </main>
 
         {/* ==================== MATCHDAY FOOTER ==================== */}
@@ -3146,7 +3339,7 @@ export default function App() {
           <div
             role="status"
             aria-live="polite"
-            className="fixed bottom-5 right-5 z-50 inline-flex items-center gap-2 px-4 py-3 rounded-2xl bg-[#16241D] text-[#FFFDF8] font-mono text-xs font-bold shadow-xl border border-[#C8962E]"
+            className="fixed bottom-20 right-5 z-50 inline-flex items-center gap-2 px-4 py-3 rounded-2xl bg-[#16241D] text-[#FFFDF8] font-mono text-xs font-bold shadow-xl border border-[#C8962E]"
           >
             <Check className="w-4 h-4 text-[#22C55E]" />
             <span>{toast}</span>
